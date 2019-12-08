@@ -40,13 +40,9 @@ class HashTableMap[K, V]()(implicit hash: Hashing[K]) extends cse250.objects.Map
   }
 
   override def addOne(elem: (K, V)): Unit = {
-    if (bucketArray.contains(elem)){
-      val idx = bucketArray.indexOf(elem)
-      bucketArray(idx) //can't do contain
-    } else {
-      bucketArray.prepended(elem)
-      //add key value to head?
-    }
+    val lookupIndex = hash.hash(elem._1) % N
+    bucketArray(lookupIndex).prepend(elem)
+    n += 1
   }
 
   override def get(key: K): Option[V] = {
@@ -57,5 +53,38 @@ class HashTableMap[K, V]()(implicit hash: Hashing[K]) extends cse250.objects.Map
     None
   }
 
-  override def iterator: Iterator[(K, V)] = ???
+  override def iterator: Iterator[(K, V)] = new Iterator[(K,V)] {
+    var bucketidx = 0
+    var bucketsize = 0
+    var currentbucketlocation = 0
+    var lastElem = true
+    var totalItered = 0
+    while(bucketidx < bucketArray.size  && bucketArray(bucketidx).isEmpty){ //to find the 1t bucket that has something
+      bucketidx += 1
+    }
+    var current = bucketArray(bucketidx)(currentbucketlocation)
+
+    override def hasNext: Boolean = {
+      currentbucketlocation += 1
+      if (currentbucketlocation >= bucketArray(bucketidx).length){
+        currentbucketlocation = 0
+        bucketidx += 1
+        while(bucketidx < bucketArray.size && bucketArray(bucketidx).isEmpty){ //to find the next bucket that has something
+          bucketidx += 1
+        }
+      }
+      lastElem
+    }
+
+    override def next(): (K,V) = {
+      val previousNode = current
+      current = bucketArray(bucketidx)(currentbucketlocation)
+      totalItered += 1
+      if (totalItered == n) {
+        lastElem = false
+        return current
+      }
+      previousNode
+    }
+  }
 }
